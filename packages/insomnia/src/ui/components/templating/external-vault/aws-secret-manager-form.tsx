@@ -116,7 +116,7 @@ export const AWSSecretManagerForm = (props: AWSSecretManagerFormProps) => {
             <label>
               Secret Key
               <HelpTooltip className="space-left">
-                The Secret Key of the retrived key/value secrets.
+                The secret key of the retrived key-value secrets.
               </HelpTooltip>
               <input
                 name='SecretKey'

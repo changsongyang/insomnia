@@ -31,6 +31,7 @@ import { SvgIcnGithubLogo } from './assets/svgr/IcnGithubLogo';
 import { SvgIcnGitlabLogo } from './assets/svgr/IcnGitlabLogo';
 import { SvgIcnGlobe } from './assets/svgr/IcnGlobe';
 import { SvgIcnGui } from './assets/svgr/IcnGui';
+import { SvgIcnHashiCorp } from './assets/svgr/IcnHashiCorp';
 import { SvgIcnHeart } from './assets/svgr/IcnHeart';
 import { SvgIcnHome } from './assets/svgr/IcnHome';
 import { SvgIcnIndentation } from './assets/svgr/IcnIndentation';
@@ -135,6 +136,7 @@ export const IconEnum = {
   systemEvent: 'system-event',
   gcpLogo: 'gcp-logo',
   azureLogo: 'azure-logo',
+  hashiCorp: 'hashicorp',
   /** Blank icon */
   empty: 'empty',
 } as const;
@@ -199,6 +201,7 @@ const icons: Record<IconId, [ThemeKeys, NamedExoticComponent<SVGProps<SVGSVGElem
   [IconEnum.systemEvent]: [ThemeEnum.default, SvgIcnSystemEvent],
   [IconEnum.gcpLogo]: [ThemeEnum.default, SvgIcnGCPLogo],
   [IconEnum.azureLogo]: [ThemeEnum.default, SvgIcnAzureLogo],
+  [IconEnum.hashiCorp]: [ThemeEnum.default, SvgIcnHashiCorp],
 };
 
 export type IconId = ValueOf<typeof IconEnum>;

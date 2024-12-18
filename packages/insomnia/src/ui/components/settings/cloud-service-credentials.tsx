@@ -37,6 +37,11 @@ const createCredentialItemList: createCredentialItemType[] = [
     name: getProviderDisplayName('gcp'),
     icon: <SvgIcon icon='gcp-logo' className='ml-1' />,
   },
+  {
+    id: 'hashicorp',
+    name: getProviderDisplayName('hashicorp'),
+    icon: <SvgIcon icon='hashicorp' className='ml-1' />,
+  },
 ];
 const buttonClassName = 'disabled:opacity-50 h-7 aspect-square aria-pressed:bg-[--hl-sm] rounded-sm text-[--color-font] hover:bg-[--hl-xs] transition-all text-sm py-1 px-2';
 

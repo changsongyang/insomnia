@@ -10,7 +10,7 @@ export interface CloudServiceResult<T extends Record<string, any>> {
 export interface ICloudService {
   authenticate(...args: any[]): Promise<any>;
   getSecret(secretName: string, config: any): Promise<any>;
-  getUniqueCacheKey<T extends {} = {}>(secretName: string, config?: T): string;
+  getUniqueCacheKey(secretName: string, config?: any): string;
 }
 
 export type AWSSecretType = 'kv' | 'plaintext';
@@ -32,8 +32,31 @@ export interface GCPSecretConfig {
   secretName: string;
   version?: string;
 }
+export interface HCPSecretConfig {
+  // we only support HCP static vault secret
+  type: 'static';
+  organizationId: string;
+  projectId: string;
+  appName: string;
+  secretName: string;
+  version?: string | number;
+}
+export interface HashiCorpVaultKVV1SecretConfig {
+  kvVersion: 'v1';
+  secretEnginePath: string;
+  secretName: string;
+  secretKey?: string;
+}
+export interface HashiCorpVaultKVV2SecretConfig {
+  kvVersion: 'v2';
+  secretEnginePath: string;
+  secretName: string;
+  secretKey?: string;
+  version?: string | number;
+}
+export type HashiCorpSecretConfig = HCPSecretConfig | HashiCorpVaultKVV1SecretConfig | HashiCorpVaultKVV2SecretConfig;
 
-export type ExternalVaultConfig = AWSSecretConfig | AzureSecretConfig | GCPSecretConfig;
+export type ExternalVaultConfig = AWSSecretConfig | AzureSecretConfig | GCPSecretConfig | HashiCorpSecretConfig;
 
 export abstract class OAuthCloudService {
   static async openAuthUrl() {

@@ -1,8 +1,9 @@
 import type { AWSGetSecretConfig } from '../../../main/ipc/cloud-service-integraion/aws-service';
 import type { CloudServiceSecretOption } from '../../../main/ipc/cloud-service-integraion/cloud-service';
 import type { GCPGetSecretConfig } from '../../../main/ipc/cloud-service-integraion/gcp-servcie';
-import type { AWSSecretConfig, AzureSecretConfig, ExternalVaultConfig, GCPSecretConfig } from '../../../main/ipc/cloud-service-integraion/types';
-import type { CloudProviderCredential, CloudProviderName } from '../../../models/cloud-credential';
+import type { HashiCorpVaultKVV1SecretValue, HashiCorpVaultKVV2SecretValue, HCPStaticSecretValue } from '../../../main/ipc/cloud-service-integraion/hashicorp-service';
+import type { AWSSecretConfig, AzureSecretConfig, ExternalVaultConfig, GCPSecretConfig, HashiCorpSecretConfig, HashiCorpVaultKVV1SecretConfig, HashiCorpVaultKVV2SecretConfig, HCPSecretConfig } from '../../../main/ipc/cloud-service-integraion/types';
+import { type CloudProviderCredential, type CloudProviderName, HashiCorpCrdentialType, type HashiCorpCredentialsType } from '../../../models/cloud-credential';
 
 export const getExternalVault = async (provider: CloudProviderName, providerCredential: CloudProviderCredential, secretConfig: ExternalVaultConfig) => {
   switch (provider) {
@@ -12,6 +13,8 @@ export const getExternalVault = async (provider: CloudProviderName, providerCred
       return getAzureSecret(secretConfig as AzureSecretConfig, providerCredential);
     case 'gcp':
       return getGCPSecret(secretConfig as GCPSecretConfig, providerCredential);
+    case 'hashicorp':
+      return getHashiCorpSecret(secretConfig as HashiCorpSecretConfig, providerCredential);
     default:
       return '';
   }
@@ -93,5 +96,71 @@ export const getGCPSecret = async (secretConfig: GCPSecretConfig, providerCreden
     return result.value;
   } else {
     throw new Error(`Get secret from GCP failed: ${error?.errorMessage}`);
+  }
+};
+
+export const getHashiCorpSecret = async (secretConfig: HashiCorpSecretConfig, providerCredential: CloudProviderCredential) => {
+  const { secretName } = secretConfig;
+  if (!secretName) {
+    throw new Error('Secret Name is required');
+  }
+  const { credentials } = providerCredential;
+  const { type } = credentials as HashiCorpCredentialsType;
+  if (type === HashiCorpCrdentialType.cloud) {
+    const { organizationId, projectId, appName } = secretConfig as HCPSecretConfig;
+    if (!organizationId || !projectId || !appName) {
+      throw new Error('Organization Id, Project Id, App Name is required');
+    }
+  } else {
+    const { secretEnginePath } = secretConfig as HashiCorpVaultKVV1SecretConfig;
+    if (!secretEnginePath) {
+      throw new Error('Secret Engine Path is required');
+    }
+  };
+  const getSecretOption: CloudServiceSecretOption<HashiCorpSecretConfig> = {
+    provider: 'hashicorp',
+    secretId: secretConfig.secretName,
+    credentials: providerCredential.credentials,
+    config: secretConfig,
+  };
+  const secretResult = await window.main.cloudService.getSecret(getSecretOption);
+  const { success, error, result } = secretResult;
+  if (success && result) {
+    if (type === HashiCorpCrdentialType.cloud) {
+      // cloud static secret value
+      const { value } = result as HCPStaticSecretValue;
+      return value;
+    } else {
+      const { kvVersion, secretKey } = secretConfig as HashiCorpVaultKVV1SecretConfig | HashiCorpVaultKVV2SecretConfig;
+      if (kvVersion === 'v1') {
+        // onPrem kv v1 secert value
+        const { data } = result as HashiCorpVaultKVV1SecretValue;
+        if (secretKey) {
+          if (secretKey in data) {
+            return data[secretKey];
+          } else {
+            throw new Error(`Secret key ${secretKey} does not exist in kv secert data ${JSON.stringify(data)}`);
+          }
+        } else {
+          return JSON.stringify(data);
+        }
+      } else if (kvVersion === 'v2') {
+        // onPrem kv v2 secert value
+        const { data } = result as HashiCorpVaultKVV2SecretValue;
+        const { data: secretV2Data } = data;
+        if (secretKey) {
+          if (secretKey in secretV2Data) {
+            return secretV2Data[secretKey];
+          } else {
+            throw new Error(`Secret key ${secretKey} does not exist in kv secert data ${JSON.stringify(secretV2Data)}`);
+          }
+        } else {
+          return JSON.stringify(secretV2Data);
+        }
+      };
+    };
+    return result.toString();
+  } else {
+    throw new Error(error?.errorMessage);
   }
 };
