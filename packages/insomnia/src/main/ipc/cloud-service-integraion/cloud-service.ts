@@ -6,6 +6,8 @@ import { ipcMainHandle, ipcMainOn } from '../electron';
 import { type AWSGetSecretConfig, AWSService } from './aws-service';
 import { AzureService } from './azure-service';
 import { type GCPGetSecretConfig, GCPService } from './gcp-servcie';
+import { type HashiCorpCredentialType, HashiCorpService } from './hashicorp-service';
+import type { HashiCorpSecretConfig } from './types';
 import { type MaxAgeUnit, VaultCache } from './vault-cache';
 
 // in-memory cache for fetched vault secrets
@@ -27,7 +29,7 @@ export interface CloudServiceSecretOption<T extends {}> extends CloudServiceAuth
   secretId: string;
   config: T;
 }
-export type CloudServiceGetSecretConfig = AWSGetSecretConfig | GCPGetSecretConfig;
+export type CloudServiceGetSecretConfig = AWSGetSecretConfig | GCPGetSecretConfig | HashiCorpSecretConfig;
 
 export function registerCloudServiceHandlers() {
   ipcMainHandle('cloudService.authenticate', (_event, options) => cspAuthentication(options));
@@ -48,6 +50,8 @@ class ServiceFactory {
         return new AzureService(credential as AzureOAuthCredential);
       case 'gcp':
         return new GCPService(credential as string);
+      case 'hashicorp':
+        return new HashiCorpService(credential as HashiCorpCredentialType);
       default:
         throw new Error('Invalid cloud service provider name');
     }
@@ -95,6 +99,7 @@ const getSecret = async (options: CloudServiceSecretOption<CloudServiceGetSecret
     // return cache value if exists
     return vaultCache.getItem(uniqueSecretKey);
   }
+  // @ts-expect-error the config type is mapping to the corresponding service provider
   const secretResult = await cloudService.getSecret(secretId, config);
   if (secretResult.success) {
     const settings = await models.settings.get();
