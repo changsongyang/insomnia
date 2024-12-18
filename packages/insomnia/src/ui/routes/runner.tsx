@@ -306,9 +306,9 @@ export const Runner: FC<{}> = () => {
 
     window.main.trackSegmentEvent({ event: SegmentEvent.collectionRunExecute, properties: { plan: currentPlan?.type || 'scratchpad', iterations: iterationCount } });
 
-    const selected = new Set(reqList.selectedKeys);
-    const requests = Array.from(reqList.items)
-      .filter(item => selected.has(item.id));
+    const requests = reqList.selectedKeys === 'all'
+      ? reqList.items
+      : reqList.items.filter(item => (reqList.selectedKeys as Set<Key>).has(item.id));
 
     // convert uploadData to environment data
     const userUploadEnvs = uploadData.map(data => {
@@ -347,7 +347,7 @@ export const Runner: FC<{}> = () => {
     navigate(`/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug/request/${requestId}`);
   };
   const onToggleSelection = () => {
-    if (Array.from(reqList.selectedKeys).length === Array.from(reqList.items).length) {
+    if (reqList.selectedKeys === 'all' || Array.from(reqList.selectedKeys).length === Array.from(reqList.items).length) {
       // unselect all
       reqList.setSelectedKeys(new Set([]));
     } else {
@@ -478,10 +478,10 @@ export const Runner: FC<{}> = () => {
       ? Array.from(reqList.items)
         .filter(item => item.ancestorIds.includes(targetFolderId))
         .map(item => item.id)
-        .filter(id => new Set(reqList.selectedKeys).has(id))
+        .filter(id => reqList.selectedKeys === 'all' || new Set(reqList.selectedKeys).has(id))
       : Array.from(reqList.items)
         .map(item => item.id)
-        .filter(id => new Set(reqList.selectedKeys).has(id));
+        .filter(id => reqList.selectedKeys === 'all' || new Set(reqList.selectedKeys).has(id));
 
   return (
     <>
@@ -600,7 +600,7 @@ export const Runner: FC<{}> = () => {
                 <Toolbar className="w-full flex-shrink-0 h-[--line-height-sm] border-b border-solid border-[--hl-md] flex items-center px-2">
                   <span className="mr-2">
                     {
-                      Array.from(reqList.selectedKeys).length === Array.from(reqList.items).length ?
+                      (reqList.selectedKeys === 'all' || Array.from(reqList.selectedKeys).length === Array.from(reqList.items).length) ?
                         <span onClick={onToggleSelection}><i style={{ color: 'rgb(74 222 128)' }} className="fa fa-square-check fa-1x h-4 mr-2" /> <span className="cursor-pointer" >Unselect All</span></span> :
                         Array.from(reqList.selectedKeys).length === 0 ?
                           <span onClick={onToggleSelection}><i className="fa fa-square fa-1x h-4 mr-2" /> <span className="cursor-pointer" >Select All</span></span> :
