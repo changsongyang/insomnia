@@ -122,7 +122,7 @@ export const HashiCorpCredentialForm = (props: HashiCorpCredentialFormProps) => 
             checked={credentialType === HashiCorpCrdentialType.onPrem}
             onChange={() => setCredentialType(HashiCorpCrdentialType.onPrem)}
           />
-          <label className="pt-0 mr-8" htmlFor="hashiCorpEnvironmentTypeChoice-onPrem">On-Prem</label>
+          <label className="pt-0 mr-8 w-32" htmlFor="hashiCorpEnvironmentTypeChoice-onPrem">On-Premises</label>
 
           <input
             type="radio"
@@ -152,7 +152,7 @@ export const HashiCorpCredentialForm = (props: HashiCorpCredentialFormProps) => 
                 checked={credentialAuthMethod === HashiCorpVaultAuthMethod.appRole}
                 onChange={() => setAuthMethod(HashiCorpVaultAuthMethod.appRole)}
               />
-              <label className="pt-0 mr-8" htmlFor="authMethodChoice-appRole">AppRole</label>
+              <label className="pt-0 mr-8 w-32" htmlFor="authMethodChoice-appRole">AppRole</label>
 
               <input
                 type="radio"
