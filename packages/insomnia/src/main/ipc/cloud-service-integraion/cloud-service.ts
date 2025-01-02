@@ -25,11 +25,17 @@ export interface CloudServiceAuthOption {
   provider: CloudProviderName;
   credentials: BaseCloudCredential['credentials'];
 }
-export interface CloudServiceSecretOption<T extends {}> extends CloudServiceAuthOption {
+// eslint-disable-next-line @typescript-eslint/consistent-type-definitions
+type CloudServiceGetSecretConfigMapping = {
+  'aws': AWSGetSecretConfig;
+  'gcp': GCPGetSecretConfig;
+  'hashicorp': HashiCorpSecretConfig;
+  'azure': never;
+};
+export interface CloudServiceSecretOption extends CloudServiceAuthOption {
   secretId: string;
-  config: T;
+  config: CloudServiceGetSecretConfigMapping[this['provider']];
 }
-export type CloudServiceGetSecretConfig = AWSGetSecretConfig | GCPGetSecretConfig | HashiCorpSecretConfig;
 
 export function registerCloudServiceHandlers() {
   ipcMainHandle('cloudService.authenticate', (_event, options) => cspAuthentication(options));
@@ -91,7 +97,7 @@ const cspAuthentication = (options: CloudServiceAuthOption) => {
   return cloudService.authenticate();
 };
 
-const getSecret = async (options: CloudServiceSecretOption<CloudServiceGetSecretConfig>) => {
+const getSecret = async (options: CloudServiceSecretOption) => {
   const { provider, credentials, secretId, config } = options;
   const cloudService = ServiceFactory.createCloudService(provider, credentials);
   const uniqueSecretKey = cloudService.getUniqueCacheKey(secretId, config);
@@ -99,8 +105,7 @@ const getSecret = async (options: CloudServiceSecretOption<CloudServiceGetSecret
     // return cache value if exists
     return vaultCache.getItem(uniqueSecretKey);
   }
-  // @ts-expect-error the config type is mapping to the corresponding service provider
-  const secretResult = await cloudService.getSecret(secretId, config);
+  const secretResult = await cloudService.getSecret(secretId, config as any);
   if (secretResult.success) {
     const settings = await models.settings.get();
     const maxAge = Number(settings.vaultSecretCacheDuration) * 1000 * 60;
