@@ -52,7 +52,6 @@ export const HashiCorpVaultForm = (props: HashiCorpVaultFormProps) => {
           <label>
             Secret Name:
             <input
-              required
               name='secretName'
               defaultValue={secretName}
               onChange={() => handleOnChange()}
@@ -97,7 +96,6 @@ export const HashiCorpVaultForm = (props: HashiCorpVaultFormProps) => {
               <label>
                 Secret Engine Path:
                 <input
-                  required
                   name='secretEnginePath'
                   defaultValue={secretEnginePath}
                   onChange={() => handleOnChange()}
@@ -146,7 +144,6 @@ export const HashiCorpVaultForm = (props: HashiCorpVaultFormProps) => {
               <label>
                 Organization Id:
                 <input
-                  required
                   name='organizationId'
                   defaultValue={organizationId}
                   onChange={() => handleOnChange()}
@@ -159,7 +156,6 @@ export const HashiCorpVaultForm = (props: HashiCorpVaultFormProps) => {
               <label>
                 Project Id:
                 <input
-                  required
                   name='projectId'
                   defaultValue={projectId}
                   onChange={() => handleOnChange()}
@@ -172,7 +168,6 @@ export const HashiCorpVaultForm = (props: HashiCorpVaultFormProps) => {
               <label>
                 App Name:
                 <input
-                  required
                   name='appName'
                   defaultValue={appName}
                   onChange={() => handleOnChange()}
