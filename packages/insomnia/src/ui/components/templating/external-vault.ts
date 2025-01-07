@@ -1,9 +1,9 @@
-import type { AWSGetSecretConfig } from '../../../main/ipc/cloud-service-integraion/aws-service';
 import type { CloudServiceSecretOption } from '../../../main/ipc/cloud-service-integraion/cloud-service';
-import type { GCPGetSecretConfig } from '../../../main/ipc/cloud-service-integraion/gcp-servcie';
 import type { HashiCorpVaultKVV1SecretValue, HashiCorpVaultKVV2SecretValue, HCPStaticSecretValue } from '../../../main/ipc/cloud-service-integraion/hashicorp-service';
 import type { AWSSecretConfig, AzureSecretConfig, ExternalVaultConfig, GCPSecretConfig, HashiCorpSecretConfig, HashiCorpVaultKVV1SecretConfig, HashiCorpVaultKVV2SecretConfig, HCPSecretConfig } from '../../../main/ipc/cloud-service-integraion/types';
+import * as models from '../../../models';
 import { type CloudProviderCredential, type CloudProviderName, HashiCorpCrdentialType, type HashiCorpCredentialsType } from '../../../models/cloud-credential';
+import { invariant } from '../../../utils/invariant';
 
 export const getExternalVault = async (provider: CloudProviderName, providerCredential: CloudProviderCredential, secretConfig: ExternalVaultConfig) => {
   switch (provider) {
@@ -28,7 +28,7 @@ export const getAWSSecret = async (secretConfig: AWSSecretConfig, providerCreden
   if (!SecretId) {
     throw new Error('Get secret from AWS failed: Secret Name or ARN is required');
   }
-  const getSecretOption: CloudServiceSecretOption<AWSGetSecretConfig> = {
+  const getSecretOption: CloudServiceSecretOption = {
     provider: 'aws',
     secretId: SecretId,
     config: {
@@ -64,7 +64,7 @@ export const getAzureSecret = async (secretConfig: AzureSecretConfig, providerCr
   if (!secretIdentifier) {
     throw new Error('Get secret from Azure failed: Secret Identifieror is required');
   }
-  const getSecretOption: CloudServiceSecretOption<{}> = {
+  const getSecretOption: CloudServiceSecretOption = {
     provider: 'azure',
     secretId: secretIdentifier,
     credentials: providerCredential.credentials,
@@ -84,7 +84,7 @@ export const getGCPSecret = async (secretConfig: GCPSecretConfig, providerCreden
   if (!secretName) {
     throw new Error('Get secret from GCP failed: Secret Name is required');
   }
-  const getSecretOption: CloudServiceSecretOption<GCPGetSecretConfig> = {
+  const getSecretOption: CloudServiceSecretOption = {
     provider: 'gcp',
     secretId: secretName,
     credentials: providerCredential.credentials,
@@ -101,10 +101,11 @@ export const getGCPSecret = async (secretConfig: GCPSecretConfig, providerCreden
 
 export const getHashiCorpSecret = async (secretConfig: HashiCorpSecretConfig, providerCredential: CloudProviderCredential) => {
   const { secretName } = secretConfig;
+  const providerName = 'hashicorp';
   if (!secretName) {
     throw new Error('Secret Name is required');
   }
-  const { credentials } = providerCredential;
+  const { credentials, _id: cloudCredentialId } = providerCredential;
   const { type } = credentials as HashiCorpCredentialsType;
   if (type === HashiCorpCrdentialType.cloud) {
     const { organizationId, projectId, appName } = secretConfig as HCPSecretConfig;
@@ -117,11 +118,35 @@ export const getHashiCorpSecret = async (secretConfig: HashiCorpSecretConfig, pr
       throw new Error('Secret Engine Path is required');
     }
   };
-  const getSecretOption: CloudServiceSecretOption<HashiCorpSecretConfig> = {
-    provider: 'hashicorp',
+  const getSecretOption: CloudServiceSecretOption = {
+    provider: providerName,
     secretId: secretConfig.secretName,
-    credentials: providerCredential.credentials,
+    credentials,
     config: secretConfig,
+  };
+  // Check if the token is expired. 0 means the token never expires like root token
+  const { expires_at } = credentials as HashiCorpCredentialsType;
+  if (typeof expires_at === 'number' && expires_at !== 0 && expires_at < Date.now()) {
+    const authResponse = await window.main.cloudService.authenticate({ provider: providerName, credentials });
+    const { success, result, error } = authResponse!;
+    if (success && result) {
+      const { access_token, expires_at } = result as { access_token: string; expires_at: number };
+      // update access_token and expires_at
+      const originCredential = await models.cloudCrendential.getById(cloudCredentialId);
+      invariant(originCredential, 'No Cloud Credential found');
+      const originHashiCorpCredential = originCredential.credentials as HashiCorpCredentialsType;
+      const patch = {
+        credentials: {
+          ...originHashiCorpCredential,
+          access_token, expires_at,
+        },
+      } as { credentials: HashiCorpCredentialsType };
+      await models.cloudCrendential.update(originCredential, patch);
+      getSecretOption.credentials = patch.credentials;
+    } else {
+      // failed to get new token
+      throw new Error(error?.errorMessage);
+    };
   };
   const secretResult = await window.main.cloudService.getSecret(getSecretOption);
   const { success, error, result } = secretResult;
