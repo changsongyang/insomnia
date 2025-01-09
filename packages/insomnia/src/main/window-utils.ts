@@ -50,7 +50,7 @@ interface Bounds {
 }
 
 export function init() {
-  initLocalStorage();
+  localStorage = initLocalStorage();
 }
 const stopAndWaitForHiddenBrowserWindow = async (runningHiddenBrowserWindow: BrowserWindow) => {
   return await new Promise<void>(resolve => {
@@ -804,9 +804,10 @@ export const setZoom = (transformer: (current: number) => number) => () => {
   localStorage?.setItem('zoomFactor', actual);
 };
 
-function initLocalStorage() {
+export function initLocalStorage() {
   const localStoragePath = path.join(process.env['INSOMNIA_DATA_PATH'] || app.getPath('userData'), 'localStorage');
-  localStorage = new LocalStorage(localStoragePath);
+  const localStorage = new LocalStorage(localStoragePath);
+  return localStorage;
 }
 
 export function createWindowsAndReturnMain({ firstLaunch }: { firstLaunch?: boolean } = {}) {
