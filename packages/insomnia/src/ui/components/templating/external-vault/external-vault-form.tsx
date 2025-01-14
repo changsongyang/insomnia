@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Button } from 'react-aria-components';
 
 import { debounce } from '../../../../common/misc';
@@ -16,7 +16,9 @@ export const ExternalVaultForm = (props: ArgConfigFormProps) => {
   const { onChange, configValue, activeTagData, docs } = props;
   const [showModal, setShowModal] = useState(false);
   const provider = activeTagData.args[0].value as CloudProviderName;
-  const formData = JSON.parse(configValue) as ExternalVaultConfig;
+  const formData = useMemo(() => {
+    return JSON.parse(configValue) as ExternalVaultConfig;
+  }, [configValue]);
   const selectedCredentialId = activeTagData.args[1].value;
   const cloudCredentialDocs = docs[type] as CloudProviderCredential[] || [];
   const selectedCredentialDoc = cloudCredentialDocs.find(d => d._id === selectedCredentialId);
