@@ -26,7 +26,7 @@ export const ExternalVaultForm = (props: ArgConfigFormProps) => {
   const handleFormChange = debounce((newConfig: ExternalVaultConfig) => {
     const newFormValue = JSON.stringify(newConfig);
     onChange(newFormValue);
-  }, 1000);
+  }, 500);
   let SubForm;
 
   switch (provider) {
