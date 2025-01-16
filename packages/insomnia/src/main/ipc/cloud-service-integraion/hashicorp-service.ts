@@ -101,7 +101,33 @@ export class HashiCorpService implements ICloudService {
     const timeNow = Date.now();
     try {
       if (type === HashiCorpCrdentialType.cloud) {
-        // todo cloud auth
+        const { client_id, client_secret } = this._credential as HCPCrdential;
+        const formData = new FormData();
+        formData.set('client_id', client_id);
+        formData.set('client_secret', client_secret);
+        formData.set('grant_type', 'client_credentials');
+        formData.set('audience', hcp_api_url);
+        const requestConfig: RequestInit = {
+          method: 'POST',
+          body: formData,
+          signal: AbortSignal.timeout(INSOMNIA_FETCH_TIME_OUT),
+        };
+        // authenticate to HashiCorp Cloud Platform
+        const authResponse = await net.fetch(`${hcp_auth_url}/oauth2/token`, requestConfig);
+        if (authResponse.ok) {
+          const authResponseBody = await authResponse.json() as HCPAccessTokenResponse;
+          const { access_token, expires_in } = authResponseBody;
+          return {
+            success: true,
+            result: {
+              access_token,
+              expires_at: timeNow + expires_in * 1000,
+            },
+          };
+        } else {
+          const errorResult = await this._parseResponseError(authResponse);
+          return errorResult;
+        }
       } else {
         const { authMethod, serverAddress } = this._credential;
         const finalUrl = serverAddress.endsWith('/') ? serverAddress.substring(0, serverAddress.length - 1) : serverAddress;
@@ -216,6 +242,24 @@ export class HashiCorpService implements ICloudService {
         const finalUrl = serverAddress.endsWith('/') ? serverAddress.substring(0, serverAddress.length - 1) : serverAddress;
         const { kvVersion, secretEnginePath } = config as HashiCorpVaultKVV1SecretConfig | HashiCorpVaultKVV2SecretConfig;
         if (kvVersion === 'v1') {
+          const requestConfig: RequestInit = {
+            method: 'GET',
+            headers: {
+              'X-Vault-Token': access_token!,
+            },
+            signal: AbortSignal.timeout(INSOMNIA_FETCH_TIME_OUT),
+          };
+          const secretResponse = await net.fetch(`${finalUrl}/v1/${secretEnginePath}/${secretName}`, requestConfig);
+          if (secretResponse.ok) {
+            const secretResponseBody = await secretResponse.json() as HashiCorpVaultKVV1SecretValue;
+            return {
+              success: true,
+              result: secretResponseBody,
+            };
+          } else {
+            const errorResult = await this._parseResponseError(secretResponse);
+            return errorResult;
+          }
         } else {
           // kv version v2
           const { version } = config as HashiCorpVaultKVV2SecretConfig;
